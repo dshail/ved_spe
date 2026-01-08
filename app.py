@@ -28,13 +28,17 @@ if "grading_results" not in st.session_state:
     st.session_state.grading_results = []
 
 # --- CONFIGURATION ---
-try:
-    datalab_key = st.secrets.get("DATALAB_API_KEY", "")
-    gemini_key = st.secrets.get("GEMINI_API_KEY", "")
-except FileNotFoundError:
-    datalab_key = ""
-    gemini_key = ""
-    st.error("Secrets file not found. Please set DATALAB_API_KEY and GEMINI_API_KEY in .streamlit/secrets.toml")
+# Helper to get secrets checking both st.secrets and os.environ
+def get_secret(key):
+    if key in st.secrets:
+        return st.secrets[key]
+    return os.environ.get(key, "")
+
+datalab_key = get_secret("DATALAB_API_KEY")
+gemini_key = get_secret("GEMINI_API_KEY")
+
+if not datalab_key or not gemini_key:
+    st.warning("⚠️ One or more API keys are missing. Please set DATALAB_API_KEY and GEMINI_API_KEY in secrets or environment variables.")
 
 if gemini_key:
     genai.configure(api_key=gemini_key)
@@ -238,7 +242,15 @@ with tab3:
                     eval_res = postprocess_evaluation(eval_res, q_ref.get("max_marks"))
                     
                     # Add metadata
-                    eval_res["student_name"] = student.get("student_metadata", {}).get("student_name")
+                    # Add metadata with fallback for identification
+                    s_meta = student.get("student_metadata", {})
+                    s_name = s_meta.get("student_name")
+                    if not s_name:
+                        s_name = s_meta.get("roll_number")
+                    if not s_name:
+                        s_name = student.get("filename", "Unknown Student")
+                        
+                    eval_res["student_name"] = s_name
                     eval_res["student_roll"] = student.get("student_metadata", {}).get("roll_number")
                     eval_res["question_text"] = q_ref.get("question_text_plain")
                     eval_res["student_answer"] = ans_text
