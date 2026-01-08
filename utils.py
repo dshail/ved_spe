@@ -196,7 +196,7 @@ def call_marker_with_structured_extraction(filepath, api_key, page_schema, max_r
                 check_url = data.get('request_check_url')
                 
                 # Poll for completion
-                for i in range(150):
+                for i in range(600):
                     time.sleep(2)
                     resp = requests.get(check_url, headers=headers)
                     result = resp.json()
